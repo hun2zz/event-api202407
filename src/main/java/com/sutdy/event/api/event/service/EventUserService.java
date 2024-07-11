@@ -1,6 +1,7 @@
 package com.sutdy.event.api.event.service;
 
 
+import com.sutdy.event.api.event.dto.request.EventUserSaveDto;
 import com.sutdy.event.api.event.entity.EmailVerification;
 import com.sutdy.event.api.event.entity.EventUser;
 import com.sutdy.event.api.event.repository.EmailVerificationRepository;
@@ -144,5 +145,20 @@ public class EventUserService {
 
 
         return false;
+    }
+
+
+    //회원가입 마무리
+    public void confirmSignUp(EventUserSaveDto dto) {
+        // 기존 회원정보 조회
+        EventUser findUser = eventUserRepository.findByEmail(dto.getEmail()).orElseThrow(
+                () -> new RuntimeException("회원 정보가 존재하지 않습니다.")
+        );
+
+        //데이터 반영 (패스웓, 가입시간)
+        findUser.confirm(dto.getPassword());
+        eventUserRepository.save(findUser);
+
+
     }
 }
