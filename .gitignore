@@ -1,6 +1,6 @@
 
 .idea/
-application.yml
+application.yaml
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
