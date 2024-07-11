@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ public class EventUserService {
     private final EmailVerificationRepository emailVerificationRepository;
 
     private final JavaMailSender mailSender;
+    // 패스워드 암호화 객체
+    private final PasswordEncoder encoder;
 
     public boolean checkEmailDuplicate(String email) {
         EventUser build = EventUser.builder()
@@ -156,7 +159,12 @@ public class EventUserService {
         );
 
         //데이터 반영 (패스웓, 가입시간)
-        findUser.confirm(dto.getPassword());
+        String password = dto.getPassword();
+        findUser.confirm(password);
+        String encodedPassword = encoder.encode(password); // 암호화
+
+        findUser.confirm(encodedPassword);
+
         eventUserRepository.save(findUser);
 
 
