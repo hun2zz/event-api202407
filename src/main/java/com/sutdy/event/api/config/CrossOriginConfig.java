@@ -9,11 +9,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 
 public class CrossOriginConfig implements WebMvcConfigurer {
+
+    private String[] url = {
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://localhost:3002",
+    };
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry
                 .addMapping("/**")
-                .allowedOrigins("httpL//localhost:3000") // dㅓ떤 클라이언트를
+                .allowedOrigins(url) // dㅓ떤 클라이언트를
                 .allowedMethods("*") //어떤 방식에서
                 .allowedHeaders("*") //어떤 헤더를 허용할지
                 .allowCredentials(true) // 쿠키 전송을 허용할지
