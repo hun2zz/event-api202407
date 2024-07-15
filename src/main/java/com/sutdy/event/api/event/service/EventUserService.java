@@ -2,10 +2,12 @@ package com.sutdy.event.api.event.service;
 
 
 import com.sutdy.event.api.event.dto.request.EventUserSaveDto;
+import com.sutdy.event.api.event.dto.request.LoginRequestDto;
 import com.sutdy.event.api.event.entity.EmailVerification;
 import com.sutdy.event.api.event.entity.EventUser;
 import com.sutdy.event.api.event.repository.EmailVerificationRepository;
 import com.sutdy.event.api.event.repository.EventUserRepository;
+import com.sutdy.event.api.exception.LoginFailException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,9 +42,29 @@ public class EventUserService {
         eventUserRepository.save(build);
         boolean b = eventUserRepository.existsByEmail(email);
 
+        //중복인데 회원가입이 마루리되지 않은 회원은 중복이 아니라고 ㅍ ㅏㄴ단
+        if(b && notFinish(email)) {
+            return false;
+        }
+
         //일련의 후속 처리 ( 데이터베이스 처리, 이메일 보내는 처리 )
         if (!b)processSignUp(email);
         return b;
+    }
+
+    private boolean notFinish(String email) {
+        EventUser eventUser = eventUserRepository.findByEmail(email).orElseThrow();
+        if (!eventUser.isEmailVerified() || eventUser.getPassword() == null) {
+
+            //기존 인증코드가 있는 경우 삭제
+            EmailVerification ev = emailVerificationRepository.findByEventUser(eventUser).orElse(null);
+
+            if(ev != null) emailVerificationRepository.delete(ev);
+            //인증코드 재발송
+            generateAndCreateCode(email, eventUser);
+            return true;
+        }
+        return false;
     }
 
     private void processSignUp(String email) {
@@ -155,7 +177,7 @@ public class EventUserService {
     public void confirmSignUp(EventUserSaveDto dto) {
         // 기존 회원정보 조회
         EventUser findUser = eventUserRepository.findByEmail(dto.getEmail()).orElseThrow(
-                () -> new RuntimeException("회원 정보가 존재하지 않습니다.")
+                () -> new LoginFailException("회원 정보가 존재하지 않습니다.")
         );
 
         //데이터 반영 (패스웓, 가입시간)
@@ -166,6 +188,31 @@ public class EventUserService {
         findUser.confirm(encodedPassword);
 
         eventUserRepository.save(findUser);
+
+
+    }
+
+
+    //회원 인증 처리 ( login )
+    public void authenticate (final LoginRequestDto dto) {
+        //이메일을 통한 회원정보 조회
+        EventUser eventUser = eventUserRepository.findByEmail(
+                dto.getEmail()).orElseThrow(() -> new LoginFailException("가입된 회원이 아닙니다."));
+
+        //이메일 인증을 하지 않앗거나 패스워드를 설정하지 않은 회원.
+        if(!eventUser.isEmailVerified() || eventUser.getPassword() == null) {
+            throw new LoginFailException("회원가입이 중단된 회원입니다. 다시 가입해주세요.");
+        }
+
+        //패스워드 검증
+        String inputPassword = dto.getPassword();
+        String encodedPassword = eventUser.getPassword();
+        if(!encoder.matches(inputPassword, encodedPassword)) {
+            throw new LoginFailException("비밀번호가 틀렸습니다.");
+        }
+
+        //로그인 성공
+        //인증정보를 어떻게 관리할 것인가 ?
 
 
     }
