@@ -1,8 +1,10 @@
 package com.sutdy.event.api.event.service;
 
 
+import com.sutdy.event.api.auth.TokenProvider;
 import com.sutdy.event.api.event.dto.request.EventUserSaveDto;
 import com.sutdy.event.api.event.dto.request.LoginRequestDto;
+import com.sutdy.event.api.event.dto.response.LoginResponseDto;
 import com.sutdy.event.api.event.entity.EmailVerification;
 import com.sutdy.event.api.event.entity.EventUser;
 import com.sutdy.event.api.event.repository.EmailVerificationRepository;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.mail.internet.MimeMessage;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @RequiredArgsConstructor
@@ -30,6 +31,10 @@ public class EventUserService {
     private String mailHost;
     private final EventUserRepository eventUserRepository;
     private final EmailVerificationRepository emailVerificationRepository;
+
+
+    //토큰 생성 객체
+    private final TokenProvider tokenProvider;
 
     private final JavaMailSender mailSender;
     // 패스워드 암호화 객체
@@ -194,7 +199,7 @@ public class EventUserService {
 
 
     //회원 인증 처리 ( login )
-    public void authenticate (final LoginRequestDto dto) {
+    public LoginResponseDto authenticate (final LoginRequestDto dto) {
         //이메일을 통한 회원정보 조회
         EventUser eventUser = eventUserRepository.findByEmail(
                 dto.getEmail()).orElseThrow(() -> new LoginFailException("가입된 회원이 아닙니다."));
@@ -213,7 +218,16 @@ public class EventUserService {
 
         //로그인 성공
         //인증정보를 어떻게 관리할 것인가 ?
+        // 인증정보를 클라이언트에게 전송
 
+        //토큰 생성
+        String token = tokenProvider.createToken(eventUser);
+
+        return LoginResponseDto.builder()
+                .email(eventUser.getEmail())
+                .role(eventUser.getRole().toString())
+                .token(token)
+                .build();
 
     }
 }
