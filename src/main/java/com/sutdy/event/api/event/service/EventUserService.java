@@ -40,47 +40,54 @@ public class EventUserService {
     // 패스워드 암호화 객체
     private final PasswordEncoder encoder;
 
+    // 이메일 중복확인 처리
     public boolean checkEmailDuplicate(String email) {
-        EventUser build = EventUser.builder()
-                .email("abc@def.com" + (int) (Math.random() * 10))
-                .build();
-        eventUserRepository.save(build);
-        boolean b = eventUserRepository.existsByEmail(email);
 
-        //중복인데 회원가입이 마루리되지 않은 회원은 중복이 아니라고 ㅍ ㅏㄴ단
-        if(b && notFinish(email)) {
+        boolean exists = eventUserRepository.existsByEmail(email);
+        log.info("Checking email {} is duplicate : {}", email, exists);
+
+        // 중복인데 회원가입이 마무리되지 않은 회원은 중복이 아니라고 판단
+        if (exists && notFinish(email)) {
             return false;
         }
 
-        //일련의 후속 처리 ( 데이터베이스 처리, 이메일 보내는 처리 )
-        if (!b)processSignUp(email);
-        return b;
+        // 일련의 후속 처리 (데이터베이스 처리, 이메일 보내는 것...)
+        if (!exists) processSignUp(email);
+
+        return exists;
     }
+
 
     private boolean notFinish(String email) {
         EventUser eventUser = eventUserRepository.findByEmail(email).orElseThrow();
+
         if (!eventUser.isEmailVerified() || eventUser.getPassword() == null) {
+            // 기존 인증코드가 있는 경우 삭제
+            EmailVerification ev = emailVerificationRepository
+                    .findByEventUser(eventUser)
+                    .orElse(null);
 
-            //기존 인증코드가 있는 경우 삭제
-            EmailVerification ev = emailVerificationRepository.findByEventUser(eventUser).orElse(null);
+            if (ev != null) emailVerificationRepository.delete(ev);
 
-            if(ev != null) emailVerificationRepository.delete(ev);
-            //인증코드 재발송
+            // 인증코드 재발송
             generateAndCreateCode(email, eventUser);
             return true;
         }
         return false;
     }
 
-    private void processSignUp(String email) {
-        //1. 임시 회원가입
-        EventUser newEventUser = EventUser.builder()
+    public void processSignUp(String email) {
+
+        // 1. 임시 회원가입
+        EventUser newEventUser = EventUser
+                .builder()
                 .email(email)
                 .build();
 
         EventUser savedUser = eventUserRepository.save(newEventUser);
 
         generateAndCreateCode(email, savedUser);
+
     }
 
     private void generateAndCreateCode(String email, EventUser eventUser) {

@@ -2,6 +2,7 @@ package com.sutdy.event.api.auth;
 
 
 import com.sutdy.event.api.event.entity.EventUser;
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -72,14 +73,15 @@ public class TokenProvider {
      * 클라이언트가 전송한 토큰을 디코딩하여 토큰의 서명 위조 여부를 확인
      * 토큰을 JSON 으로 파싱하여 안에 들어있는 클레임(토큰 정보) 를 리턴
      *
-     * @param token
+     * @param token - 클라이언트가 보낸 토큰
+     * @return - 토큰에 들어있는 인증 정보들을 리턴 - 회원 식별 ID
      */
-    public void validateAndGetTokenInfo(String token) {
+    public String validateAndGetTokenInfo(String token) {
         //해체할때는 parserBuilder를 사용함.
-        Jwts.parserBuilder()
+        Claims claims = Jwts.parserBuilder()
                 //토큰 발급자의 발급 당시 서명을 넣음
                 .setSigningKey(
-                Keys.hmacShaKeyFor(SECRET_KEY.getBytes())
+                        Keys.hmacShaKeyFor(SECRET_KEY.getBytes())
                 )
                 //서명 위조 검사 진행 : 위조된 경우 Exception이 발생
                 //위조되지 않은 경우 클레임을 리턴시킴
@@ -87,5 +89,8 @@ public class TokenProvider {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+        log.info("claims {}", claims);
+        //토큰에 인증된 회원의 ID
+        return claims.getSubject();
     }
 }
