@@ -2,10 +2,12 @@ package com.sutdy.event.api.auth;
 
 
 import com.sutdy.event.api.event.entity.EventUser;
+import com.sutdy.event.api.event.entity.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -76,7 +78,7 @@ public class TokenProvider {
      * @param token - 클라이언트가 보낸 토큰
      * @return - 토큰에 들어있는 인증 정보들을 리턴 - 회원 식별 ID
      */
-    public String validateAndGetTokenInfo(String token) {
+    public TokenUserInfo validateAndGetTokenInfo(String token) {
         //해체할때는 parserBuilder를 사용함.
         Claims claims = Jwts.parserBuilder()
                 //토큰 발급자의 발급 당시 서명을 넣음
@@ -90,7 +92,24 @@ public class TokenProvider {
                 .parseClaimsJws(token)
                 .getBody();
         log.info("claims {}", claims);
-        //토큰에 인증된 회원의 ID
-        return claims.getSubject();
+        //토큰에 인증된 회원의 ID, email, role
+        return TokenUserInfo.builder()
+                .userId(claims.getSubject())
+                .email(claims.get("id", String.class))
+                .role(Role.valueOf(claims.get("role", String.class)))
+                .build();
+    }
+
+
+    @Getter
+    @ToString
+    @EqualsAndHashCode
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class TokenUserInfo{
+        private String userId;
+        private String email;
+        private Role role;
     }
 }

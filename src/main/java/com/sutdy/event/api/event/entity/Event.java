@@ -46,6 +46,7 @@ public class Event {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ev_user_id")
+    @Setter
     private EventUser eventUser;
 
 
