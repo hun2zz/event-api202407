@@ -3,6 +3,8 @@ package com.sutdy.event.api.config;
 import com.sutdy.event.api.auth.filter.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +20,8 @@ import org.springframework.web.filter.CorsFilter;
 // OAuth2 - SNS로그인
 @EnableWebSecurity
 @RequiredArgsConstructor
+//컨트롤러에서 사전, 사후에 권한정보를 캐치해서 막을건지.
+@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
 
@@ -42,6 +46,9 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests() //요청 별로 인가 설정
+                // /events/* -> 뒤에 딱 하나만
+                // /events/** -> 여러개
+                .antMatchers(HttpMethod.DELETE,"/events/*").hasAuthority("ADMIN")
                 //아래의 요청은 모두 허용
                 .antMatchers("/", "/auth/**").permitAll()
                 //나머지 인증은 전부 인증(로그인) 후 진행해라.
