@@ -6,6 +6,7 @@ import com.sutdy.event.api.event.dto.response.EventDetailDto;
 import com.sutdy.event.api.event.dto.response.EventOneDto;
 import com.sutdy.event.api.event.entity.Event;
 import com.sutdy.event.api.event.entity.EventUser;
+import com.sutdy.event.api.event.entity.Role;
 import com.sutdy.event.api.event.repository.EventRepository;
 import com.sutdy.event.api.event.repository.EventUserRepository;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,14 @@ public class EventService {
     saveEvent(EventSaveDto dto, String userId) {
         //로그인한 회원 정보 조회
         EventUser eventUser = eventUserRepository.findById(userId).orElseThrow();
+
+        //로그인한 회원 권한 조회 확인 + 등록 개수 확인
+        //권한에 따른 글쓰기 제한
+        if (
+                eventUser.getRole() == Role.COMMON && eventUser.getEventList().size() >= 4
+        ) {
+            throw new IllegalStateException("일반 회원은 이벤트를 더 이상 등록할 수 없습니다");
+        }
         Event newEvent = dto.toEntity();
         newEvent.setEventUser(eventUser);
         Event savedEvent = eventRepository.save(newEvent);

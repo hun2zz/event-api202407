@@ -237,4 +237,21 @@ public class EventUserService {
                 .build();
 
     }
+
+    public LoginResponseDto promoteToPremium(String userId) {
+        //회원 탐색
+        EventUser eventUser = eventUserRepository.findById(userId).orElseThrow();
+
+        //등급 변경
+        eventUser.promoteToPremium();
+        EventUser save = eventUserRepository.save(eventUser);
+
+        //토큰 재발급
+        String token = tokenProvider.createToken(save);
+        return LoginResponseDto.builder()
+                .token(token)
+                .email(eventUser.getEmail())
+                .role(eventUser.getRole().toString())
+                .build();
+    }
 }

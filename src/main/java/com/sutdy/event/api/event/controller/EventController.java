@@ -4,8 +4,10 @@ import com.sutdy.event.api.auth.TokenProvider;
 import com.sutdy.event.api.auth.TokenProvider.TokenUserInfo;
 import com.sutdy.event.api.event.dto.request.EventSaveDto;
 import com.sutdy.event.api.event.dto.response.EventOneDto;
+import com.sutdy.event.api.event.dto.response.LoginResponseDto;
 import com.sutdy.event.api.event.repository.EventRepository;
 import com.sutdy.event.api.event.service.EventService;
+import com.sutdy.event.api.event.service.EventUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +26,7 @@ public class EventController {
 
     private final EventService eventService;
     private final EventRepository eventRepository;
+    private final EventUserService eventUserService;
 
     // 전체 조회 요청
     @GetMapping("/page/{pageNo}")
@@ -46,8 +49,13 @@ public class EventController {
     @PostMapping
     public ResponseEntity<?> register(@RequestBody EventSaveDto dto,
     @AuthenticationPrincipal TokenUserInfo tokenInfo) { // JwtAuthFilter에서 시큐리티에 등록한 데이터
-        eventService.saveEvent(dto, tokenInfo.getUserId());
-        return ResponseEntity.ok().body("event Saved!");
+        try {
+            eventService.saveEvent(dto, tokenInfo.getUserId());
+            return ResponseEntity.ok().body("event Saved!");
+        } catch (IllegalStateException e) {
+            log.warn(e.getMessage());
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
     }
 
     // 단일 조회 요청
@@ -81,5 +89,19 @@ public class EventController {
     public ResponseEntity<?> modify(@RequestBody EventSaveDto dto, @PathVariable Long eventId) {
         eventService.modifyEvent(eventId, dto);
         return ResponseEntity.ok().body("modify event success!");
+    }
+
+    //premium 회원으로 등급업하느 ㄴ요청 처리
+    @PutMapping("/promote")
+    public ResponseEntity<?> promote(
+            @AuthenticationPrincipal TokenUserInfo userInfo
+    ) {
+        try {
+            LoginResponseDto dto = eventUserService.promoteToPremium(userInfo.getUserId());
+            return ResponseEntity.ok().body(dto);
+        } catch (Exception e) {
+            log.warn(e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
